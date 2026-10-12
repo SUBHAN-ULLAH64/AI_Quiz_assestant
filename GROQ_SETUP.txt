@@ -1,0 +1,9 @@
+AI Quiz Master — Groq API setup
+
+1. Install dependencies: python -m pip install -r requirements.txt
+2. Copy .env.example to .env in this folder.
+3. In .env, replace put_your_api_key_here with your Groq API key.
+4. Keep the key private. Never share .env or commit it to GitHub.
+5. Run: python -m streamlit run app.py
+
+Default model: llama-3.3-70b-versatile. If model availability changes, choose a currently supported model from the Groq console/docs and set GROQ_MODEL.

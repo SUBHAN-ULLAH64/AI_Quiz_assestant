@@ -1,0 +1,11 @@
+AI QUIZ MASTER — GROK API SETUP
+
+1. Open the ai_quiz_master folder in VS Code.
+2. In the terminal run: Copy-Item .env.example .env
+3. Open .env and set XAI_API_KEY to your own key from the official xAI developer console.
+4. Keep the key private; do not paste it into chat or upload .env.
+5. Check XAI_MODEL=grok-4.7 is available for your account and check billing/credits. API usage may cost money.
+6. Install dependencies: python -m pip install -r requirements.txt
+7. Run: python -m streamlit run app.py
+
+The app uses the OpenAI-compatible xAI endpoint https://api.x.ai/v1.
