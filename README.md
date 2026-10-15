@@ -23,35 +23,6 @@ A university prototype that creates quizzes from course materials using retrieva
 - Internet access for package/model downloads and LLM API calls
 - An GROQ_API_KEY key for Grok to generate/grade quizzes
 
-## Setup on Windows PowerShell
-
-1. Extract the ZIP and open the `ai_quiz_master` folder in VS Code.
-2. Check Python:
-   ```powershell
-   py -3.11 --version
-   ```
-3. Create and activate a virtual environment:
-   ```powershell
-   py -3.11 -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-   If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python`.
-4. Install packages:
-   ```powershell
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-5. Copy the environment template:
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-6. Open `.env` in VS Code and replace `put_your_api_key_here` with your GROQ_API_KEY key. Keep the key private. Do not share this file or upload it to GitHub.
-7. Run:
-   ```powershell
-   streamlit run app.py
-   ```
-8. Open the local address Streamlit prints, usually `http://localhost:8501`.
-
 ## First use
 
 1. Open **Course material** and upload a text-based PDF, DOCX, or PPTX.
