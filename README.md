@@ -8,7 +8,11 @@ A university prototype that creates quizzes from course materials using retrieva
 - Extract text and split it into token chunks (default 500 tokens, 80-token overlap).
 - Generate local embeddings and persist them in Chroma.
 - Search course chunks by meaning.
-- Generate MCQ, true/false, and short-answer quizzes using an LLM API.
+- Generate MCQ, true/false, and short-answer quizzes using the Groq API.
+- Generate a summary for a selected topic using relevant retrieved course chunks.
+- Generate a complete-document summary by processing all stored chunks in batches.
+- Extract important key points with page/slide source references.
+- Download generated study guides as PDF.
 - Validate JSON structure and require a source chunk ID from retrieval.
 - Explain incorrect answers with a course source reference.
 - Store users, quizzes, attempts, scores, and per-topic adaptive stats in SQLite.
@@ -19,9 +23,38 @@ A university prototype that creates quizzes from course materials using retrieva
 ## Requirements
 
 - Windows 10/11, macOS, or Linux
-- Python 3.11 recommended
+- Python 3.11 or newer (use a Python version supported by the installed ChromaDB dependencies)
 - Internet access for package/model downloads and LLM API calls
-- An GROQ_API_KEY key for Grok to generate/grade quizzes
+- A Groq API key for quiz generation, grading, explanations, and study guides
+
+## Setup on Windows PowerShell
+
+1. Extract the ZIP and open the `AI_Quiz_Master_Updated` folder in VS Code.
+2. Check Python:
+   ```powershell
+   python --version
+   ```
+3. Create and activate a virtual environment:
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+   If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python`.
+4. Install packages:
+   ```powershell
+   python -m pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+5. Copy the environment template:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+6. Open `.env` in VS Code and replace `put_your_api_key_here` with your Groq API key. Keep the key private. Do not share this file or upload it to GitHub.
+7. Run:
+   ```powershell
+   streamlit run app.py
+   ```
+8. Open the local address Streamlit prints, usually `http://localhost:8501`.
 
 ## First use
 
@@ -30,13 +63,14 @@ A university prototype that creates quizzes from course materials using retrieva
 3. Try semantic search to check retrieval.
 4. Open **Take a quiz**, enter a topic found in your notes, select question type and difficulty, then generate.
 5. Submit answers to see explanations and source references.
-6. Use the Dashboard and Export tabs.
+6. Open **Summary & Key Points** to summarize a topic or an entire uploaded document and download a PDF study guide.
+7. Use the Dashboard and Export tabs.
 
 ## API key and cost
 
-Document parsing, local Chroma storage, and semantic retrieval do not need an LLM API key. Quiz generation and LLM-based short-answer grading/explanations do. API calls may incur provider charges. Review your provider's pricing and usage limits before using it.
+Document parsing, local Chroma storage, and semantic retrieval do not need an LLM API key. Quiz generation, LLM-based short-answer grading/explanations, and study-guide generation do. API calls may incur provider charges. Review your provider's pricing and usage limits before using it.
 
-`GROQ_API_KEY` defaults to `GROQ_API_KEY`, and the app uses the official GROQ_API_KEY endpoint `GROQ_API_KEY`. Check your xAI console for model access and current pricing/credits before use. Creating an API key does not guarantee free API usage.
+The app reads `GROQ_API_KEY` and optional `GROQ_MODEL` from `.env` or Streamlit secrets. It uses the Groq OpenAI-compatible API endpoint. Check your Groq Console for current model access, usage limits, and pricing before use. Creating an API key does not guarantee free API usage.
 
 ## Run tests
 
@@ -51,6 +85,13 @@ pytest -q
 
 These are local files and are ignored by `.gitignore`.
 
+## Summary and key-point generation
+
+- **Selected topic:** semantic search retrieves the most relevant course chunks, then Groq generates a summary and key points from those chunks.
+- **Entire document:** all stored chunks for the selected document are processed in batches before the study guide is combined.
+- Key-point citations are restricted to source references retrieved from the uploaded material. Always compare generated study notes with the original document.
+- Large documents may require multiple Groq requests and can take longer or use more API quota.
+
 ## Important limitations
 
 - Scanned PDFs and images inside slides are not OCR-processed.
@@ -59,7 +100,7 @@ These are local files and are ignored by `.gitignore`.
 - Short-answer grading and explanations can make additional API calls.
 - The username selector is a demo identity feature, not secure login or multi-user access control.
 - This app is intended as an educational prototype, not a production learning platform.
-- If a document is re-uploaded with changed content, old chunks are not automatically removed. Clear `data/chroma/` only while the app is stopped if you want to reset the vector database (this deletes stored vector data).
+- If you had uploaded multiple versions of the same filename before this update, upload that document again once so the vector store can replace older chunks for that filename. Clear `data/chroma/` only while the app is stopped if you want to reset the entire vector database (this deletes stored vector data).
 
 ## Evaluation plan
 
@@ -73,9 +114,9 @@ Measure JSON validity, source-ID grounding rate, answer correctness, and whether
 
 ## Architecture
 
-`app.py` → `document_processor.py` → `vector_store.py` (Chroma) → `llm_service.py` (LLM API) → `database.py` (SQLite) → dashboard and exports.
+`app.py` → `document_processor.py` → `vector_store.py` (Chroma) → `learning_tools.py` / `llm_service.py` (Groq API) → `database.py` (SQLite) → dashboard and exports.
 
-`prompts.py` contains the generation, grading, and explanation templates.
+`prompts.py` contains quiz, grading, explanation, summary, and key-point prompt templates.
 
 
 ## Groq API configuration

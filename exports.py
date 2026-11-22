@@ -83,3 +83,47 @@ def results_to_pdf(username, attempts, topic_stats):
         story.append(Spacer(1, 7))
     doc.build(story)
     return buffer.getvalue()
+
+
+def learning_material_to_pdf(username, learning_material):
+    """Create a PDF study guide containing the summary, key points and sources."""
+    from xml.sax.saxutils import escape
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter, rightMargin=0.65*inch, leftMargin=0.65*inch,
+        topMargin=0.65*inch, bottomMargin=0.65*inch,
+    )
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph("AI Quiz Master — Study Guide", styles["Title"]),
+        Paragraph(f"Student: {escape(str(username))}", styles["Normal"]),
+        Paragraph(f"Topic / document: {escape(str(learning_material.get('title', 'Study material')))}", styles["Normal"]),
+        Spacer(1, 14),
+        Paragraph("Summary", styles["Heading1"]),
+    ]
+    summary = str(learning_material.get("summary", ""))
+    for paragraph in summary.split("\n"):
+        if paragraph.strip():
+            story.append(Paragraph(escape(paragraph.strip()), styles["BodyText"]))
+            story.append(Spacer(1, 6))
+
+    story.extend([Spacer(1, 10), Paragraph("Key Points", styles["Heading1"])])
+    points = learning_material.get("key_points", [])
+    if points:
+        for item in points:
+            point = escape(str(item.get("point", "")))
+            reference = escape(str(item.get("source_reference", "")))
+            story.append(Paragraph(f"• {point}", styles["BodyText"]))
+            if reference:
+                story.append(Paragraph(f"<i>Source: {reference}</i>", styles["Italic"]))
+            story.append(Spacer(1, 6))
+    else:
+        story.append(Paragraph("No key points were returned for this material.", styles["BodyText"]))
+
+    sources = learning_material.get("source_references", [])
+    story.extend([Spacer(1, 10), Paragraph("Sources reviewed", styles["Heading1"])])
+    for reference in sources:
+        story.append(Paragraph(f"• {escape(str(reference))}", styles["BodyText"]))
+    doc.build(story)
+    return buffer.getvalue()

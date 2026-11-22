@@ -10,8 +10,9 @@ from database import (
     save_quiz, save_attempt, get_dashboard_data
 )
 from llm_service import generate_quiz, grade_short_answer, explain_wrong_answer
+from learning_tools import create_learning_material, available_course_files
 from adaptive import weak_topics
-from exports import attempts_to_csv, quiz_to_csv, results_to_pdf
+from exports import attempts_to_csv, quiz_to_csv, results_to_pdf, learning_material_to_pdf
 
 st.set_page_config(page_title="AI Quiz Master", page_icon="📚", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""<style>
@@ -129,8 +130,8 @@ with st.sidebar:
     )
 
 user = st.session_state["user"]
-tab_upload, tab_quiz, tab_dashboard, tab_export, tab_eval = st.tabs(
-    ["📄 Course material", "🧠 Take a quiz", "📊 Dashboard", "⬇️ Export", "🧪 Evaluation"]
+tab_upload, tab_quiz, tab_learning, tab_dashboard, tab_export, tab_eval = st.tabs(
+    ["📄 Course material", "🧠 Take a quiz", "📘 Summary & Key Points", "📊 Dashboard", "⬇️ Export", "🧪 Evaluation"]
 )
 
 with tab_upload:
@@ -332,8 +333,93 @@ with tab_quiz:
                     st.write(outcome["explanation"])
                     st.caption(f"Reference: {outcome['source_file']} — {outcome['source_location']}")
 
+
+with tab_learning:
+    section_heading(
+        "03", "Summary & Key Points",
+        "Turn your uploaded course notes into a source-grounded study guide."
+    )
+    st.write(
+        "Generate a summary and important points from your uploaded material. "
+        "The AI is instructed to use your course content rather than inventing facts."
+    )
+    available_files = available_course_files()
+    if not available_files:
+        st.warning("Upload and process course material first.")
+    else:
+        summary_mode = st.radio(
+            "What would you like to summarize?",
+            ["Selected topic", "Entire document"],
+            horizontal=True,
+            key="learning_summary_mode",
+        )
+        selected_topic = ""
+        selected_file = None
+        if summary_mode == "Selected topic":
+            selected_topic = st.text_input(
+                "Topic name",
+                placeholder="e.g., OSI Model, Object-Oriented Programming",
+                key="learning_topic_input",
+            )
+            st.caption("The system searches your uploaded course files for the most relevant sections.")
+        else:
+            selected_file = st.selectbox(
+                "Choose a document", available_files, key="learning_document_select"
+            )
+            st.caption("The system retrieves all stored chunks for the selected document and summarizes them in batches.")
+
+        if st.button("Generate Summary & Key Points", type="primary", key="generate_learning_material"):
+            try:
+                st.session_state.pop("learning_material_result", None)
+                with st.spinner("Reading course material and generating your study guide..."):
+                    generated = create_learning_material(
+                        mode="topic" if summary_mode == "Selected topic" else "document",
+                        topic=selected_topic,
+                        source_file=selected_file,
+                    )
+                    st.session_state["learning_material_result"] = generated
+                st.success("Your study guide is ready.")
+            except Exception as exc:
+                st.error(f"Could not generate study material: {exc}")
+                st.info("Check your Groq API key, model access, internet connection, and uploaded course material.")
+
+        learning_result = st.session_state.get("learning_material_result")
+        if learning_result:
+            st.divider()
+            st.subheader(learning_result.get("title", "Study guide"))
+            st.caption(
+                f"Used {learning_result.get('chunks_used', 0)} course chunk(s) · "
+                f"Source file(s): {', '.join(learning_result.get('source_files', []))}"
+            )
+            st.markdown("### 📝 Summary")
+            st.write(learning_result.get("summary", ""))
+            st.markdown("### 🔑 Key Points")
+            key_points = learning_result.get("key_points", [])
+            if key_points:
+                for index, item in enumerate(key_points, start=1):
+                    st.markdown(f"**{index}. {item['point']}**")
+                    st.caption(f"Source: {item['source_reference']}")
+            else:
+                st.info("The source material did not provide enough information for separate key points.")
+            with st.expander("View source references"):
+                for reference in learning_result.get("source_references", []):
+                    st.write(f"• {reference}")
+            pdf_bytes = learning_material_to_pdf(user["username"], learning_result)
+            safe_title = "".join(
+                character if character.isalnum() or character in "-_" else "_"
+                for character in learning_result.get("title", "study_guide")
+            ).strip("_") or "study_guide"
+            st.download_button(
+                "⬇️ Download Study Guide (PDF)",
+                data=pdf_bytes,
+                file_name=f"{safe_title}_study_guide.pdf",
+                mime="application/pdf",
+                key="download_learning_material_pdf",
+            )
+
+
 with tab_dashboard:
-    section_heading("03", "Learning dashboard", "Review your accuracy, practice history, and topics that need more attention.")
+    section_heading("04", "Learning dashboard", "Review your accuracy, practice history, and topics that need more attention.")
     attempts, topic_rows, quizzes = get_dashboard_data(user["id"])
     if not attempts:
         st.info("Take a quiz to start building your dashboard.")
@@ -372,7 +458,7 @@ with tab_dashboard:
             st.dataframe(pd.DataFrame(quizzes), use_container_width=True, hide_index=True)
 
 with tab_export:
-    section_heading("04", "Export center", "Download quiz questions and progress reports for study or submission.")
+    section_heading("05", "Export center", "Download quiz questions and progress reports for study or submission.")
     attempts, topic_rows, quizzes = get_dashboard_data(user["id"])
     active_quiz = st.session_state.get("active_quiz")
     if active_quiz:
@@ -399,7 +485,7 @@ with tab_export:
     )
 
 with tab_eval:
-    section_heading("05", "Evaluation & quality", "Explore validation checks and the project evaluation approach.")
+    section_heading("06", "Evaluation & quality", "Explore validation checks and the project evaluation approach.")
     st.markdown("""
     Use this page to understand the project's quality checks. These checks support
     evaluation but **do not prove** that a question is factually correct.

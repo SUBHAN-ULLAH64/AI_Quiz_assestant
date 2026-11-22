@@ -6,4 +6,4 @@ AI Quiz Master — Groq API setup
 4. Keep the key private. Never share .env or commit it to GitHub.
 5. Run: python -m streamlit run app.py
 
-Default model: llama-3.3-70b-versatile. If model availability changes, choose a currently supported model from the Groq console/docs and set GROQ_MODEL.
+Default model: openai/gpt-oss-120b. If model availability changes, choose a currently supported model from the Groq console/docs and set GROQ_MODEL.
